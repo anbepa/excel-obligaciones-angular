@@ -215,8 +215,7 @@ export class ExcelObligationsService {
     const EXCEL_EPOCH = 25569;
     // Use UTC to get a pure integer serial — no timezone fraction
     const utcMs = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-    let serial = utcMs / MS_PER_DAY + EXCEL_EPOCH;
-    if (serial >= 60) serial += 1; // Excel 1900 leap-year bug
+    const serial = utcMs / MS_PER_DAY + EXCEL_EPOCH;
     return Math.floor(serial);
   }
 
