@@ -1,0 +1,280 @@
+<main class="app-shell" [class.has-editor]="previewUrl()" [class.sidebar-collapsed]="sidebarCollapsed()">
+  <!-- ====== LEFT: Panel de Control ====== -->
+  <aside class="control-panel">
+    <button *ngIf="previewUrl()" class="collapse-toggle" (click)="toggleSidebar()" [title]="sidebarCollapsed() ? 'Expandir panel' : 'Contraer panel'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <ng-container *ngIf="!sidebarCollapsed(); else expandIcon"><polyline points="15 18 9 12 15 6"/></ng-container>
+        <ng-template #expandIcon><polyline points="9 18 15 12 9 6"/></ng-template>
+      </svg>
+    </button>
+    <div class="control-header">
+      <h1>Generador de simulaciones</h1>
+    </div>
+
+    <div class="control-section">
+      <div class="step-row">
+        <span class="step-dot">1</span>
+        <span class="step-label">Plantilla Excel</span>
+        <a href="https://acpecmikvvnxwghsirjp.supabase.co/storage/v1/object/sign/excel-previews/Base-4.xlsx?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV80OWQzY2Q3Ny1mMzQ0LTQ2MDgtODk5Yi1lMzc0MGE3Y2FhNTAiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJleGNlbC1wcmV2aWV3cy9CYXNlLTQueGxzeCIsInNjb3BlIjoiZG93bmxvYWQiLCJpYXQiOjE3ODEzMDU1MTIsImV4cCI6MTgxMjg0MTUxMn0.sJ3BiqpHwP552jiCVBUf0LG7Da23wr8DxV_vFfFUfNQ"
+           class="template-dl-btn" download title="Descargar plantilla Base">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Descargar plantilla
+        </a>
+      </div>
+      <div *ngIf="!templateFile()" class="mini-dropzone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDropTemplate($event)">
+        <input type="file" accept=".xlsx" (change)="onTemplateSelected($event)" id="tpl" tabindex="-1" title="" />
+        <label for="tpl" class="mini-dropzone-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>Arrastrá .xlsx con hoja Base</span>
+        </label>
+      </div>
+      <div *ngIf="templateFile()" class="mini-file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="truncate">{{ templateFile()?.name }}</span>
+        <button (click)="removeTemplate()" class="mini-remove" title="Quitar">&times;</button>
+      </div>
+    </div>
+
+    <div class="control-section">
+      <div class="step-row">
+        <span class="step-dot">2</span>
+        <span class="step-label">Obligaciones</span>
+        <button class="sql-help-trigger" (click)="sqlHelpOpen.set(!sqlHelpOpen())" [title]="sqlHelpOpen() ? 'Ocultar queries' : 'Queries SQL'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          <span>SQL</span>
+        </button>
+        <span *ngIf="obligations().length" class="chip">{{ obligations().length }} reg.</span>
+      </div>
+      <div *ngIf="sqlHelpOpen()" class="sql-help-panel">
+        <div class="sql-help-section">
+          <div class="sql-help-section-header">
+            <strong>Por cliente</strong>
+            <button class="sql-copy-btn" (click)="copySql(sqlByClient)" title="Copiar SQL">Copiar</button>
+          </div>
+          <pre class="sql-code">{{ sqlByClient }}</pre>
+        </div>
+        <div class="sql-help-section">
+          <div class="sql-help-section-header">
+            <strong>Por obligación</strong>
+            <button class="sql-copy-btn" (click)="copySql(sqlByObligation)" title="Copiar SQL">Copiar</button>
+          </div>
+          <pre class="sql-code">{{ sqlByObligation }}</pre>
+        </div>
+        <button class="sql-help-close" (click)="sqlHelpOpen.set(false)">Cerrar</button>
+      </div>
+      <div *ngIf="!obligationsFile() && !pasteMode()" class="mini-dropzone" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDropObligations($event)" (paste)="onPasteObligations($event)" tabindex="0">
+        <input type="file" accept=".xlsx,.csv" (change)="onObligationsSelected($event)" id="obl" tabindex="-1" title="" />
+        <label for="obl" class="mini-dropzone-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          <span>Arrastrá .xlsx, .csv o pega datos con Ctrl+V</span>
+        </label>
+        <button class="paste-trigger" (click)="openPasteMode()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Pegar CSV manual
+        </button>
+      </div>
+      <div *ngIf="!obligationsFile() && pasteMode()" class="paste-area">
+        <textarea [(ngModel)]="pastedCsv" placeholder="Pegá acá el contenido CSV..." rows="5" class="paste-textarea"></textarea>
+        <div class="paste-actions">
+          <button class="paste-btn paste-btn-primary" (click)="loadFromClipboard()">Cargar</button>
+          <button class="paste-btn" (click)="cancelPaste()">Cancelar</button>
+        </div>
+      </div>
+      <div *ngIf="obligationsFile()" class="mini-file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        <span class="truncate">{{ obligationsFile()?.name }}</span>
+        <button (click)="removeObligations()" class="mini-remove" title="Quitar">&times;</button>
+      </div>
+    </div>
+
+    <div class="control-divider"></div>
+
+    <div class="control-section">
+      <div class="step-row params-toggle" (click)="paramsOpen.set(!paramsOpen())">
+        <svg class="params-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="step-label">Parámetros de guardado</span>
+        <svg class="params-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.open]="paramsOpen()">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+      <div *ngIf="paramsOpen()" class="params-body">
+        <label class="mini-label">Nombre del archivo</label>
+        <input type="text" [(ngModel)]="options.outputFileName" (input)="saveFileName()" class="mini-input" placeholder="simulaciones_obligaciones.xlsx" />
+        <label class="mini-label">ID Carpeta Drive</label>
+        <input type="text" [(ngModel)]="driveFolderId" (ngModelChange)="saveDriveFolderId()" class="mini-input mini-input-sm" placeholder="ID de la carpeta en Drive" />
+        <small class="mini-hint">Los archivos se guardan en: {{ driveFolderId() }}</small>
+      </div>
+    </div>
+
+    <button class="generate-btn" [disabled]="!canGenerate" (click)="generate()" title="">
+      <ng-container *ngIf="!isProcessing(); else genLoading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Generar Excel
+      </ng-container>
+      <ng-template #genLoading>
+        <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity=".25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
+        {{ progressPhase() === 'generating' ? 'Generando Excel…' : 'Subiendo a Drive…' }}
+      </ng-template>
+    </button>
+
+    <div *ngIf="progressPhase() !== 'idle' && !errorMessage()" class="progress-track">
+      <div class="progress-step" [class.active]="progressPhase() === 'generating'" [class.done]="progressPhase() === 'uploading' || progressPhase() === 'done'">
+        <span class="progress-dot">1</span>
+        <span class="progress-label">Generando Excel</span>
+      </div>
+      <div class="progress-line" [class.done]="progressPhase() === 'uploading' || progressPhase() === 'done'"></div>
+      <div class="progress-step" [class.active]="progressPhase() === 'uploading'" [class.done]="progressPhase() === 'done'">
+        <span class="progress-dot">2</span>
+        <span class="progress-label">Subiendo a Drive</span>
+      </div>
+    </div>
+
+    <div *ngIf="errorMessage()" class="alert-error">{{ errorMessage() }}</div>
+
+    <div *ngIf="logs().length && progressPhase() !== 'done'" class="result-block">
+      <div *ngFor="let log of logs()" class="result-badge" [class]="log.type">{{ log.message }}</div>
+    </div>
+
+    <div *ngIf="history().length" class="history-block">
+      <div class="history-header" (click)="historyOpen.set(!historyOpen())">
+        <div class="history-header-left">
+          <svg class="history-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="history-header-title">Historial</span>
+          <span class="history-header-count">{{ history().length }}</span>
+        </div>
+        <svg class="history-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.open]="historyOpen()">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+      <div class="history-body" [class.collapsed]="!historyOpen()">
+        <div *ngFor="let sim of history()" class="history-item" (click)="restoreSimulation(sim)">
+          <div class="history-meta">
+            <span class="history-name">{{ sim.file_name }}</span>
+            <span class="history-date">{{ sim.created_at | date:'dd MMM HH:mm' }}</span>
+          </div>
+          <span class="history-count">{{ sim.record_count }} reg.</span>
+          <button class="history-del" (click)="deleteHistoryItem($event, sim)" title="Eliminar">&times;</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ====== RIGHT: Editor Canvas or Empty State ====== -->
+  <section *ngIf="previewUrl() || previewLoading(); else emptyState" class="editor-canvas" id="viewer">
+    <div class="canvas-header">
+      <h2>Editor Google Sheets</h2>
+      <div class="canvas-header-actions">
+        <button class="canvas-header-btn" (click)="toggleChat()" [class.active]="chatOpen()" title="Asistente IA">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          IA
+        </button>
+        <a [href]="previewDirectUrl() ?? '#'" target="_blank" rel="noopener" class="canvas-header-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Abrir
+        </a>
+      </div>
+    </div>
+    <div class="canvas-body">
+      <div class="canvas-iframe-wrap">
+        <div *ngIf="previewLoading() && !previewUrl()" class="canvas-loading">
+          <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-opacity=".2"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
+          <span class="truncate">{{ progressPhase() === 'generating' ? 'Generando archivo Excel…' : 'Subiendo a Google Drive…' }}</span>
+        </div>
+        <iframe *ngIf="previewUrl()" [src]="previewUrl()" class="canvas-iframe" frameborder="0" allowfullscreen title="Editor Google Sheets"></iframe>
+      </div>
+    </div>
+
+    <!-- Floating Chat -->
+    <div *ngIf="chatOpen()" class="chat-float" [class.chat-float-mini]="!chatExpanded()">
+      <div class="chat-float-header" (click)="chatExpanded() ? null : toggleChatSize()">
+        <svg class="chat-float-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>IA Asistente</span>
+        <div class="chat-float-actions">
+          <button class="chat-float-btn" (click)="toggleChatSize(); $event.stopPropagation()" [title]="chatExpanded() ? 'Minimizar' : 'Expandir'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline *ngIf="chatExpanded(); else expandIcon" points="18 15 12 9 6 15"/>
+              <ng-template #expandIcon><polyline points="6 9 12 15 18 9"/></ng-template>
+            </svg>
+          </button>
+          <button class="chat-float-btn" (click)="toggleChat(); $event.stopPropagation()" title="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="chat-presets">
+        <div class="presets-header" (click)="presetsPanelOpen.set(!presetsPanelOpen())">
+          <div class="presets-header-left">
+            <svg class="presets-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span class="presets-header-title">Prompts rápidos</span>
+            <span class="presets-header-count">{{ presets().length }}</span>
+          </div>
+          <svg class="presets-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.open]="presetsPanelOpen()">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div class="presets-body" [class.collapsed]="!presetsPanelOpen()">
+          <div class="presets-grid">
+            <div *ngFor="let p of presets()" class="preset-card" (click)="sendPreset(p.text)" [title]="p.text">
+              <div class="preset-card-body">
+                <svg class="preset-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <span class="preset-card-text">{{ p.text }}</span>
+              </div>
+              <div class="preset-card-actions">
+                <button class="preset-card-btn" (click)="startEditPreset(p); $event.stopPropagation()" title="Editar prompt">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="preset-card-btn preset-card-btn-danger" (click)="deletePreset(p.id); $event.stopPropagation()" title="Eliminar prompt">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="preset-add-section" *ngIf="presetEditing()">
+            <textarea [(ngModel)]="presetNewText" (keydown.enter)="$event.preventDefault(); presetEditing() ? saveEditPreset(presetEditing()!) : addPreset()"
+                      placeholder="Escribí el prompt…" class="preset-add-textarea" rows="2"></textarea>
+            <div class="preset-add-actions">
+              <button (click)="presetEditing() ? saveEditPreset(presetEditing()!) : addPreset()" class="preset-add-confirm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                {{ presetEditing() && presetEditing() !== 'new' ? 'Guardar' : 'Agregar' }}
+              </button>
+              <button (click)="cancelEditPreset()" class="preset-add-cancel">Cancelar</button>
+            </div>
+          </div>
+          <button *ngIf="!presetEditing()" class="preset-new-btn" (click)="presetNewText.set(''); presetEditing.set('new')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nuevo prompt
+          </button>
+        </div>
+      </div>
+      <div class="chat-messages" id="chat-scroll">
+        <div *ngIf="!chatMessages().length" class="chat-empty">
+          <p>Preguntale al asistente IA sobre tus datos.<br>Ej: "¿Cuál es el capital total?"</p>
+        </div>
+        <div *ngFor="let msg of chatMessages()" class="chat-msg" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+          <div class="chat-msg-content" [innerHTML]="mdToHtml(msg.content)"></div>
+        </div>
+        <div *ngIf="chatLoading()" class="chat-msg assistant">
+          <div class="chat-msg-content chat-typing"><span></span><span></span><span></span></div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <textarea [(ngModel)]="chatInput" (keydown)="onChatKeydown($event)" id="chat-input"
+                  placeholder="Preguntá sobre los datos…" rows="1" [disabled]="chatLoading()"></textarea>
+        <button (click)="sendChatMessage()" [disabled]="chatLoading() || !chatInput().trim()" title="Enviar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <ng-template #emptyState>
+    <section class="editor-canvas editor-empty">
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.25"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        <p>Tu simulación e informe aparecerán en este lienzo<br>una vez cargues los archivos y generes el documento.</p>
+      </div>
+    </section>
+  </ng-template>
+</main>
