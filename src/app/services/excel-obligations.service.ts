@@ -167,9 +167,13 @@ export class ExcelObligationsService {
     this.setCellDate(sheet, CELL_MAP.totalDueDate, record.totalDueDate);
     sheet.getCell(CELL_MAP.businessRate).value = this.normalizeRate(record.businessRate, options.divideRatesBy100);
     sheet.getCell(CELL_MAP.remuneratoryRate).value = this.normalizeRate(record.remuneratoryRate, options.divideRatesBy100);
-    // Force General format — clear any inherited numFmt from the cloned template
-    (sheet.getCell(CELL_MAP.remuneratoryRate) as unknown as { numFmt: string | undefined }).numFmt = undefined;
     sheet.getCell(CELL_MAP.dppRate).value = this.normalizeRate(record.dppRate, options.divideRatesBy100);
+
+    if (options.divideRatesBy100) {
+      sheet.getCell(CELL_MAP.businessRate).numFmt = '0.00%';
+      sheet.getCell(CELL_MAP.remuneratoryRate).numFmt = '0.00%';
+      sheet.getCell(CELL_MAP.dppRate).numFmt = '0.00%';
+    }
   }
 
   private setCellDate(sheet: ExcelJS.Worksheet, cellRef: string, value: unknown): void {
