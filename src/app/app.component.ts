@@ -470,7 +470,6 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
     if (!this.currentSheetId()) return;
     if (!this.chatOpen()) this.toggleChat();
     this.chatInput.set(text);
-    setTimeout(() => this.sendChatMessage(), 100);
   }
 
   addPreset(): void {
