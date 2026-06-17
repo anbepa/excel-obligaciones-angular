@@ -404,15 +404,20 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
     if (!text) return '';
     let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+    // Headings: ### / ## / #
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+    // Horizontal rule: --- on its own line
+    html = html.replace(/^---+$/gm, '<hr>');
+
     // Tablas markdown: formato | pipe | o tabulado con ---
     html = html.replace(/(?:^|\n\n)((?:\|.+\|(?:\n|$))+)/gm, (_match: string, block: string) => renderTable(block, '|'));
     html = html.replace(/(?:^|\n\n)((?:[^\n]+\t[^\n]+(?:\n|$)){2,})/gm, (_match: string, block: string) => {
-      // Tab-separado: detectar si tiene separador --- o son solo líneas de datos
       const lines = block.trim().split('\n');
-      // Si es formato con separador --- (línea de solo --- y \t)
       const hasSeparator = lines.some(l => /^[\t\s\-:]+$/.test(l) && l.includes('-'));
       if (hasSeparator) return renderTable(block, '\t');
-      // Si son solo líneas de datos (sin separador), primera línea = header
       if (lines.length >= 2) return renderTable(block, '\t');
       return _match;
     });
@@ -424,7 +429,9 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
     });
 
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/_(.+?)_/g, '<em>$1</em>');
     html = html.replace(/`(.+?)`/g, '<code>$1</code>');
     html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
     html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
@@ -440,7 +447,11 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
       if (dataLines.length === 0) return block;
       const thead = dataLines[0];
       const tbody = dataLines.slice(1);
-      const splitCells = (row: string) => row.split(sep).filter(c => c.trim());
+      const splitCells = (row: string) => {
+        const cells = row.split(sep);
+        if (sep === '|') return cells.map(c => c.trim()).filter(c => c !== '' || cells.length === row.split(sep).length);
+        return cells.filter(c => c.trim() || true);
+      };
       const headerCells = splitCells(thead).map(c => `<th>${c.trim()}</th>`).join('');
       const bodyRows = tbody.map(row => {
         const cells = splitCells(row).map(c => `<td>${c.trim()}</td>`).join('');
