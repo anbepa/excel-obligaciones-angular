@@ -404,6 +404,9 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
     if (!text) return '';
     let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+    // Normalizar: quitar tabs sueltos al final de cada línea (la IA a veces los genera)
+    html = html.replace(/\t[ \t]*(?=\n)/g, '');
+
     // Headings: ### / ## / #
     html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
@@ -414,7 +417,7 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
 
     // Tablas markdown: formato | pipe | o tabulado con ---
     html = html.replace(/(?:^|\n\n)((?:\|.+\|(?:\n|$))+)/gm, (_match: string, block: string) => renderTable(block, '|'));
-    html = html.replace(/(?:^|\n\n)((?:[^\n]+\t[^\n]+(?:\n|$)){2,})/gm, (_match: string, block: string) => {
+    html = html.replace(/(?:^|\n\n)((?:(?:[^\n\t]+(?:\t[^\n\t]+)*)[ \t]*(?:\n|$)){2,})/gm, (_match: string, block: string) => {
       const lines = block.trim().split('\n');
       const hasSeparator = lines.some(l => /^[\t\s\-:]+$/.test(l) && l.includes('-'));
       if (hasSeparator) return renderTable(block, '\t');
@@ -422,7 +425,7 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
       return _match;
     });
     // Tablas con pipes internos pero sin pipes en bordes: "A | B | C"
-    html = html.replace(/(?:^|\n\n)((?:[^\n]+\s*\|\s*[^\n]+(?:\n|$)){2,})/gm, (_match: string, block: string) => {
+    html = html.replace(/(?:^|\n\n)((?:(?:[^\n|]+(?:\s*\|\s*[^\n|]+)*)[ \t]*(?:\n|$)){2,})/gm, (_match: string, block: string) => {
       const lines = block.trim().split('\n');
       if (lines.length >= 2 && lines.every(l => l.includes('|'))) return renderTable(block, '|');
       return _match;
