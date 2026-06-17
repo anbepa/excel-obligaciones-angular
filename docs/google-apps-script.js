@@ -1,6 +1,6 @@
 var DEEPSEEK_API_KEY = PropertiesService.getScriptProperties().getProperty("DEEPSEEK_API_KEY");
 var DEFAULT_FOLDER_ID = "1u51rRx9XiKdzVzBjSg7wYgTOqmuoEjLC";
-var MAX_TOOL_TURNS = 10;
+var MAX_TOOL_TURNS = 20;
 
 // ═══════════════════════════════════════════════
 //  TOOLS DEFINITION (Function Calling)
@@ -584,6 +584,14 @@ function buildSystemPrompt() {
     + "  | 11/05 | 208,45 |\n"
     + "- Responde en español, conciso.\n"
     + "- Al finalizar una modificación, indicá claramente qué cambiaste y en qué celda.\n\n"
+    + "COMPORTAMIENTO PROACTIVO (OBLIGATORIO):\n"
+    + "- Si el usuario dice 'a tu concepto', 'te lo dejo a tu concepto' o delega en vos: ACTUÁ sin preguntar. Elegí valores razonables (ej: $1,000,000 para un abono, hoy como fecha) y procedé.\n"
+    + "- NUNCA pidas confirmación ni hagas preguntas de vuelta si podés inferir la respuesta del contexto.\n"
+    + "- NUNCA le des instrucciones al usuario ('borra eso', 'dime la fecha'). VOS sos el asistente, VOS ejecutás.\n"
+    + "- Si el usuario pide 'hacer un abono' sin más detalles: usá $1,000,000 a capital en la fecha más reciente de la tabla.\n"
+    + "- Si una fórmula calculate da 0, NO asumas que está mal. Reportá el resultado real. Google Sheets no miente.\n"
+    + "- Para fórmulas usá nombres en inglés (SUM, AVERAGE, COUNT). Google Sheets acepta ambos pero el inglés es más fiable.\n"
+    + "- NO intentes corregir fórmulas que ya funcionan. Si calculate dice 0, es 0.\n\n"
     + "ESTILO DE RESPUESTA (OBLIGATORIO):\n"
     + "- NUNCA uses saludos ni despedidas (nada de 'Listo.', 'Perfecto.', 'Claro.', 'Entendido.').\n"
     + "- NUNCA pidas disculpas ni digas 'disculpe', 'perdón', 'tiene razón'.\n"
