@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwR3Nh9ea7cmmodxrKLS6TMbosaRtEXksYKHfTZXGWOFMT-6jHYD0-WQNM_cD3YHCCZ/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_Ofxzkc00oUyhM2lXQG8LGJXAzdJRH-6D07n4lEz1YxQCLwMPFNQ-UbGHXqn_WKea/exec';
 
 @Injectable({ providedIn: 'root' })
 export class GoogleDriveService {
