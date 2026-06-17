@@ -531,7 +531,17 @@ function buildSystemPrompt() {
     + "  | 10/05 | 208,45 |\n"
     + "  | 11/05 | 208,45 |\n"
     + "- Responde en español, conciso.\n"
-    + "- Al finalizar una modificación, indicá claramente qué cambiaste y en qué celda.";
+    + "- Al finalizar una modificación, indicá claramente qué cambiaste y en qué celda.\n\n"
+    + "ESTILO DE RESPUESTA (OBLIGATORIO):\n"
+    + "- NUNCA uses saludos ni despedidas (nada de 'Listo.', 'Perfecto.', 'Claro.', 'Entendido.').\n"
+    + "- NUNCA pidas disculpas ni digas 'disculpe', 'perdón', 'tiene razón'.\n"
+    + "- NUNCA repitas la pregunta del usuario ni expliques lo obvio.\n"
+    + "- NUNCA digas 'Aquí tienes', 'Aquí está', 'Te muestro'.\n"
+    + "- Ve DIRECTAMENTE al resultado: responde con la tabla, el número o el dato solicitado.\n"
+    + "- Si la respuesta es solo un número, respondé solo el número.\n"
+    + "- Si hay una tabla, mostrala sin texto introductorio ni explicaciones innecesarias.\n"
+    + "- Solo agregá una explicación breve si el usuario la pide explícitamente o si el resultado requiere contexto.\n"
+    + "- Máximo 1 oración de contexto antes de una tabla. Si la tabla habla por sí sola, cero oraciones.";
 }
 
 // ═══════════════════════════════════════════════
