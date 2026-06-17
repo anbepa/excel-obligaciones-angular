@@ -64,6 +64,21 @@ var TOOLS = [
         required: ["sheet", "range", "values"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "calculate",
+      description: "Ejecuta una fórmula de Excel en Google Sheets y devuelve el resultado exacto. USALA SIEMPRE para sumatorias, promedios, restas, conteos y cualquier cálculo. NUNCA calcules manualmente. Ejemplos: '=SUM(V106:V181)', '=AVERAGE(B2:B50)', '=V181-V106', '=COUNT(A14:A200)'. La fórmula se ejecuta en una celda oculta temporal y se borra después.",
+      parameters: {
+        type: "object",
+        properties: {
+          sheet: { type: "string", description: "Nombre exacto de la hoja donde están los datos (la fórmula usará referencias relativas a esta hoja)" },
+          formula: { type: "string", description: "Fórmula de Excel completa con =. Ej: '=SUM(V106:V181)', '=SUMAPRODUCTO(D14:D50;E14:E50)', '=PROMEDIO(F14:F100)'" }
+        },
+        required: ["sheet", "formula"]
+      }
+    }
   }
 ];
 
@@ -269,6 +284,9 @@ function executeTool(ss, toolName, args) {
     if (toolName === "write_cells") {
       return toolWriteCells(ss, args.sheet, args.range, args.values);
     }
+    if (toolName === "calculate") {
+      return toolCalculate(ss, args.sheet, args.formula);
+    }
     return "ERROR: herramienta desconocida: " + toolName;
   } catch (e) {
     return "ERROR: " + e.toString();
@@ -438,6 +456,36 @@ function toolWriteCells(ss, sheetName, rangeStr, values) {
   return "✓ Escrito en " + sheetName + "!" + rangeStr + " → " + JSON.stringify(writeValues).substring(0, 200);
 }
 
+function toolCalculate(ss, sheetName, formula) {
+  var sheet = findSheet(ss, sheetName);
+  if (!sheet) return "ERROR: hoja '" + sheetName + "' no encontrada.";
+
+  if (!formula || typeof formula !== "string" || formula.charAt(0) !== "=") {
+    return "ERROR: formula debe empezar con =. Ej: '=SUM(V106:V181)'";
+  }
+
+  try {
+    // Usar hoja oculta _scratch para cálculos temporales
+    var scratchName = "_scratch";
+    var scratch = ss.getSheetByName(scratchName);
+    if (!scratch) {
+      scratch = ss.insertSheet(scratchName);
+      scratch.hideSheet();
+    }
+
+    var targetCell = scratch.getRange("A1");
+    targetCell.setFormula(formula);
+    SpreadsheetApp.flush();
+
+    var result = targetCell.getValue();
+    targetCell.clearContent();
+
+    return "Resultado de " + formula + " en " + sheetName + " = " + formatValue(result);
+  } catch (e) {
+    return "ERROR al calcular " + formula + ": " + e.toString();
+  }
+}
+
 // ═══════════════════════════════════════════════
 //  PARSEO DE RANGOS A1
 // ═══════════════════════════════════════════════
@@ -493,7 +541,8 @@ function buildSystemPrompt() {
     + "- list_sheets: primero para saber qué hojas existen.\n"
     + "- get_cell_info: para inspeccionar una celda específica (valor + fórmula + nota). Ideal para F8, B8, Q8, etc.\n"
     + "- read_cells: para leer rangos de datos. Leé SOLO lo que necesitás, no pidas más de 50 filas por vez.\n"
-    + "- write_cells: para modificar datos (abonos, tasas, fechas, capital).\n\n"
+    + "- write_cells: para modificar datos (abonos, tasas, fechas, capital).\n"
+    + "- calculate: PARA TODO CÁLCULO. Ejecuta fórmulas nativas de Excel (=SUM, =AVERAGE, =COUNT, =SUMPRODUCT, etc.) y devuelve el resultado exacto. USALA SIEMPRE, NUNCA calcules manualmente.\n\n"
 
     + "ESTRUCTURA TÍPICA DE CADA HOJA DE SIMULACIÓN:\n"
     + "Fila 1: encabezados de columnas.\n"
@@ -524,7 +573,10 @@ function buildSystemPrompt() {
     + "REGLAS:\n"
     + "- NUNCA inventes valores. Si no leíste un dato con read_cells, no lo asumas.\n"
     + "- Si un dato no está en el Excel, decilo.\n"
-    + "- Para sumatorias o cálculos: leé las celdas necesarias con read_cells y luego calculá.\n"
+    + "- Para sumatorias, promedios, conteos o CUALQUIER cálculo: usá SIEMPRE la herramienta calculate con fórmulas nativas de Excel.\n"
+    + "  NUNCA sumes manualmente los valores leídos con read_cells. Ej: calculate(sheet, '=SUM(V106:V181)').\n"
+    + "- Para cálculos que abarquen muchas filas, calculate es OBLIGATORIO. No intentes sumar de a pedazos.\n"
+    + "- Si necesitás el acumulado de una columna y existe una columna de acumulados (ej: W), leé el último valor de esa columna en vez de recalcular.\n"
     + "- Para mostrar datos tabulares usá formato tabla markdown:\n"
     + "  | Fecha | Valor |\n"
     + "  |-------|-------|\n"
