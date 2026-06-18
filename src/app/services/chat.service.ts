@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXyWBlW1WnnBHjRMQblSwUUeycDeOv7ew6xvK0Nvm4c5x9kg0aWCNgW3D6C32S_1I/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzljjmUDNv2qMGu4KD_Z4DOwOfbbpjBe9qqUFQHbbpalWoNxCHw0gYhaX5pbDRb072s/exec';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
