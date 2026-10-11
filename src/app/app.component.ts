@@ -48,6 +48,7 @@ export class AppComponent implements OnInit, OnDestroy {
   paramsOpen = signal(false);
   historyOpen = signal(false);
   currentSheetId = signal('');
+  lastWorkbook = signal<{ buffer: ArrayBuffer; fileName: string } | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _folderDebounce: any = null;
 
@@ -304,6 +305,7 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
       const { buffer } = await this.excelService.generateWorkbook(workbook, obligations, this.options);
       const fileName = this.safeOutputName();
       saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileName);
+      this.lastWorkbook.set({ buffer, fileName });
       this.progressPhase.set('uploading');
 
       try {
@@ -385,14 +387,20 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
 
   async sendChatMessage(): Promise<void> {
     const question = this.chatInput().trim();
-    if (!question || !this.currentSheetId()) return;
+    const wb = this.lastWorkbook();
+    if (!question || !wb) return;
     const messages = this.chatMessages();
     this.chatMessages.set([...messages, { role: 'user', content: question }]);
     this.chatInput.set(''); this.chatLoading.set(true);
     try {
-      const reply = await this.chatService.send(this.currentSheetId(), messages, question);
-      this.chatMessages.set([...this.chatMessages(), { role: 'assistant', content: reply?.trim() || 'Sin respuesta.' }]);
-    } catch { this.chatMessages.set([...this.chatMessages(), { role: 'assistant', content: 'Error al comunicarse con el asistente IA.' }]); }
+      const file = new Blob([wb.buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const result = await this.chatService.send(file, wb.fileName, messages, question);
+      let content = result.reply?.trim() || 'Sin respuesta.';
+      if (result.downloadUrl) {
+        content += `\n\n[Descargar Excel modificado](${result.downloadUrl})`;
+      }
+      this.chatMessages.set([...this.chatMessages(), { role: 'assistant', content }]);
+    } catch { this.chatMessages.set([...this.chatMessages(), { role: 'assistant', content: 'Error al comunicarse con el asistente IA. Verifica que el backend esté corriendo en http://localhost:8000.' }]); }
     finally { this.chatLoading.set(false); setTimeout(() => document.getElementById('chat-scroll')?.scrollTo(0, 99999), 50); }
   }
 
