@@ -54,6 +54,52 @@ SYSTEM_ES = (
 
 mcp_server_task: Optional[asyncio.Task] = None
 
+# Celdas clave del modelo (una hoja de simulacion por obligacion).
+KEY_CELLS = {
+    "A8": "Obligacion", "B8": "Capital", "B4": "FDesembolso", "C8": "FTransferencia",
+    "D8": "FVctoNeto", "E8": "FVctoTotal", "F8": "TasaNegocio",
+    "L8": "TasaRemuneratoria", "AB8": "TasaDPP",
+}
+
+
+def build_overview(path: Path, max_sheets: int = 15) -> str:
+    """Resumen del workbook para que el agente no pierda pasos explorando.
+
+    Equivalente rapido (sin LLM) del `get_overview` del Apps Script original:
+    por cada hoja de simulacion extrae obligacion, capital, fechas y tasas.
+    """
+    import openpyxl
+
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=False)
+    lines = [f"Hojas ({len(wb.sheetnames)}): " + ", ".join(wb.sheetnames[:max_sheets])]
+    protected = {"tasa usura", "obligaciones"}
+    for ws in wb.worksheets[:max_sheets]:
+        if ws.title.strip().lower() in protected:
+            lines.append("- " + ws.title + ": hoja de referencia")
+            continue
+        try:
+            a8, b8 = ws["A8"].value, ws["B8"].value
+        except Exception:
+            lines.append(f"- {ws.title}: (no legible)")
+            continue
+        if isinstance(a8, str) and a8.strip() and isinstance(b8, (int, float)):
+            parts = []
+            for cell, label in KEY_CELLS.items():
+                try:
+                    v = ws[cell].value
+                except Exception:
+                    v = None
+                parts.append(f"{label}={v}")
+            lines.append(f"- {ws.title}: " + ", ".join(parts))
+        else:
+            try:
+                dim = ws.dimensions
+            except Exception:
+                dim = "?"
+            lines.append(f"- {ws.title}: hoja base ({dim})")
+    wb.close()
+    return "\n".join(lines)
+
 
 async def ensure_mcp_server_running():
     global mcp_server_task
@@ -97,10 +143,22 @@ async def chat(
         config = ExperimentConfig(model=model_string, system_prompt=SYSTEM_ES, timeout=55.0)
         runner = ExcelAgentRunner(config=config, mcp_server_url=MCP_SERVER_URL)
 
+        try:
+            overview = build_overview(input_path)
+        except Exception:
+            overview = "(no se pudo pre-leer el archivo)"
+        instruction = (
+            "[Contexto del archivo]\n" + overview +
+            "\n\nUsa este contexto para responder sin explorar de mas; "
+            "solo usa herramientas para lo que el contexto no cubra.\n\n"
+            "[Pregunta del usuario]\n" + message
+        )
         agent_response = await runner.run_excel_agent(
-            TaskInput(instruction=message, input_file=str(input_path), output_file=str(output_path))
+            TaskInput(instruction=instruction, input_file=str(input_path), output_file=str(output_path))
         )
 
+        if "timed out" in agent_response:
+            return JSONResponse({"success": False, "error": "La consulta tardó demasiado. Prueba con una pregunta más específica o sobre una sola obligación."}, status_code=504)
         if agent_response.startswith("error:") or agent_response.startswith("Session init failed"):
             return JSONResponse({"success": False, "error": agent_response}, status_code=500)
 
