@@ -1,10 +1,10 @@
-# Dependencias Python del backend (las instala Vercel automaticamente)
+# Dependencias Python del backend (las instala Vercel automaticamente).
+# Se usa pydantic-ai-slim con solo los extras necesarios (mcp + openai):
+# el paquete pydantic-ai completo supera el limite de 225 MB del bundle serverless.
 openpyxl>=3.1.0
 pydantic==2.12.4
-pydantic-ai==1.11.0
-pydantic-evals==1.11.0
+pydantic-ai-slim[mcp,openai]==1.11.0
 fastmcp==2.12.4
-openai>=1.0.0
 fastapi>=0.100.0
 uvicorn>=0.20.0
 python-dotenv>=1.0.0
