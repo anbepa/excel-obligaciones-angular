@@ -1,6 +1,6 @@
 # Dependencias Python del backend (las instala Vercel automaticamente)
 openpyxl>=3.1.0
-pydantic==2.11.7
+pydantic==2.12.4
 pydantic-ai==1.11.0
 pydantic-evals==1.11.0
 fastmcp==2.12.4
