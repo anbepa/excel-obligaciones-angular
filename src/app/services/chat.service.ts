@@ -10,8 +10,9 @@ import { Injectable } from '@angular/core';
  * El backend devuelve el Excel modificado en base64 dentro de la misma
  * respuesta (las funciones serverless no guardan estado entre peticiones).
  */
+const _host = window.location.hostname;
 const CHAT_API_URL =
-  window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
+  (_host === 'localhost' || _host === '127.0.0.1') ? 'http://localhost:8001' : '';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
