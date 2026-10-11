@@ -404,7 +404,7 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
         content += `\n\n[Descargar Excel modificado](${result.downloadUrl})`;
       }
       this.chatMessages.set([...this.chatMessages(), { role: 'assistant', content }]);
-    } catch { this.chatMessages.set([...this.chatMessages(), { role: 'assistant', content: 'Error al comunicarse con el asistente IA. Verifica que el backend esté corriendo en http://localhost:8000.' }]); }
+    } catch { this.chatMessages.set([...this.chatMessages(), { role: 'assistant', content: 'Error al comunicarse con el asistente IA. Intenta de nuevo en unos segundos.' }]); }
     finally { this.chatLoading.set(false); setTimeout(() => document.getElementById('chat-scroll')?.scrollTo(0, 99999), 50); }
   }
 

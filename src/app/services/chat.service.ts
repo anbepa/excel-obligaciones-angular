@@ -1,14 +1,17 @@
 import { Injectable } from '@angular/core';
 
 /**
- * Cliente del nuevo asistente IA (sv-excel-agent + DeepSeek).
- * Reemplaza al anterior basado en Google Apps Script.
+ * Cliente del asistente IA (sv-excel-agent + DeepSeek).
  *
- * El backend (Excel/excel-chat-backend, FastAPI en http://localhost:8001)
- * recibe el Excel actual y la pregunta, ejecuta el agente sobre el archivo
- * y devuelve la respuesta + URL de descarga del Excel modificado.
+ * En desarrollo apunta al backend local (http://localhost:8001).
+ * En produccion (Vercel) usa la ruta relativa /api, servida por la
+ * funcion Python del mismo repositorio.
+ *
+ * El backend devuelve el Excel modificado en base64 dentro de la misma
+ * respuesta (las funciones serverless no guardan estado entre peticiones).
  */
-const CHAT_API_URL = 'http://localhost:8001';
+const CHAT_API_URL =
+  window.location.hostname === 'localhost' ? 'http://localhost:8001' : '';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -18,6 +21,7 @@ export interface ChatMessage {
 export interface ChatResult {
   reply: string;
   downloadUrl?: string;
+  downloadFileName?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,13 +41,21 @@ export class ChatService {
     if (!response.ok) throw new Error(`Chat error ${response.status}`);
 
     const result = await response.json() as {
-      success: boolean; response?: string; output_file?: string; error?: string;
+      success: boolean; response?: string; file_base64?: string; file_name?: string; error?: string;
     };
     if (!result.success || !result.response) throw new Error(result.error || 'Sin respuesta');
 
+    let downloadUrl: string | undefined;
+    if (result.file_base64) {
+      const bytes = Uint8Array.from(atob(result.file_base64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      downloadUrl = URL.createObjectURL(blob);
+    }
+
     return {
       reply: result.response.trim() || 'Sin respuesta del asistente.',
-      downloadUrl: result.output_file ? `${CHAT_API_URL}${result.output_file}` : undefined,
+      downloadUrl,
+      downloadFileName: result.file_name || 'modificado.xlsx',
     };
   }
 }
