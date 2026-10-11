@@ -387,12 +387,16 @@ AND to2.state IN ('CURRENT','EXPIRED')`;
 
   async sendChatMessage(): Promise<void> {
     const question = this.chatInput().trim();
-    const wb = this.lastWorkbook();
-    if (!question || !wb) return;
+    if (!question) return;
     const messages = this.chatMessages();
     this.chatMessages.set([...messages, { role: 'user', content: question }]);
     this.chatInput.set(''); this.chatLoading.set(true);
     try {
+      const wb = this.lastWorkbook();
+      if (!wb) {
+        this.chatMessages.set([...this.chatMessages(), { role: 'assistant', content: 'Primero genera el Excel con el botón **Generar Excel** y luego pregúntame sobre los datos.' }]);
+        return;
+      }
       const file = new Blob([wb.buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const result = await this.chatService.send(file, wb.fileName, messages, question);
       let content = result.reply?.trim() || 'Sin respuesta.';
